@@ -120,6 +120,9 @@ public final class MinecraftComponentSerializer implements ComponentSerializer<C
         final Class<?> chatSerializerClass = Arrays.stream(CLASS_CHAT_COMPONENT.getClasses())
           .filter(c -> {
             if (CLASS_JSON_DESERIALIZER != null) {
+              if (c.getSimpleName().equals("net.minecraft.network.chat.Component$Serializer")) {
+                return true; // explicit check for modern paper
+              }
               return CLASS_JSON_DESERIALIZER.isAssignableFrom(c);
             } else {
               for (final Class<?> itf : c.getInterfaces()) {
@@ -129,8 +132,12 @@ public final class MinecraftComponentSerializer implements ComponentSerializer<C
               }
               return false;
             }
+          }).reduce((first, second) -> {
+            if (first.getName().equals("net.minecraft.network.chat.Component$Serializer")) {
+              return first; // explicit check for modern paper
+            }
+            return second;
           })
-          .findAny()
           .orElse(findNmsClass("ChatSerializer")); // 1.7.10 compat
         if (chatSerializerClass != null) {
           final Field gsonField = Arrays.stream(chatSerializerClass.getDeclaredFields())
